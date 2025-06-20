@@ -14,7 +14,7 @@ pub fn insert_user(pool: &DbPool, new_user: &NewUser) -> Result<User, diesel::re
 
 /// Checks if a user exists with the given username or email.
 /// Returns `true` if such user exists, otherwise `false`.
-pub fn find_user_by_username_or_email(
+pub fn does_user_exist(
     pool: &DbPool,
     username_to_check: &str,
     email_to_check: &str,
@@ -29,3 +29,21 @@ pub fn find_user_by_username_or_email(
 
     Ok(existing_user.is_some())
 }
+
+/// Finds a user by username or email.
+/// Returns `Ok(Some(user))` if found, `Ok(None)` if not found.
+pub fn find_user_by_username_or_email(
+    pool: &DbPool,
+    username_or_email: &str,
+) -> Result<Option<User>, diesel::result::Error> {
+    let mut conn = get_db_conn(pool)?;
+
+    let user_found = users
+        .filter(username.eq(username_or_email))
+        .or_filter(email.eq(username_or_email))
+        .first::<User>(&mut conn)
+        .optional()?;
+
+    Ok(user_found)
+}
+

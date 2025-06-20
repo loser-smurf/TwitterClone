@@ -1,5 +1,6 @@
 use actix_web::{App, HttpServer, web};
 
+mod jwt;
 mod crypto;
 mod database;
 mod handlers;
@@ -17,7 +18,9 @@ async fn main() -> std::io::Result<()> {
     HttpServer::new(move || {
         App::new().app_data(web::Data::new(pool.clone())).service(
             web::scope("/api/users")
-                .route("/register", web::post().to(handlers::register::register)),
+                .route("/register", web::post().to(handlers::register::register))
+                .route("/login", web::post().to(handlers::login::login))
+                .route("/protected", web::post().to(handlers::login::protected_route))
         )
     })
     .bind("127.0.0.1:8080")?

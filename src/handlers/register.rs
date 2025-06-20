@@ -1,20 +1,20 @@
 use crate::crypto::PasswordService;
 use crate::database::DbPool;
 use crate::models::users::NewUser;
-use crate::repositories::users::{insert_user, find_user_by_username_or_email};
-use crate::requests::users::RegisterUserRequest;
+use crate::repositories::users::{insert_user, does_user_exist};
+use crate::requests::users::RegisterRequest;
 
 use actix_web::{HttpResponse, web, Error};
 
 pub async fn register(
     pool: web::Data<DbPool>,
-    request: web::Json<RegisterUserRequest>
+    request: web::Json<RegisterRequest>
 ) -> Result<HttpResponse, Error> {
     // Extract user registration data from the request
     let user = request.into_inner();
 
     // Check if a user with the same username or email already exists
-    let user_exists = find_user_by_username_or_email(&pool, &user.username, &user.email)
+    let user_exists = does_user_exist(&pool, &user.username, &user.email)
         .map_err(|e| {
             eprintln!("Database query error: {}", e);
             actix_web::error::ErrorInternalServerError("Internal Server Error")

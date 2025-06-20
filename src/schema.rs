@@ -48,9 +48,4 @@ diesel::joinable!(likes -> tweets (tweet_id));
 diesel::joinable!(likes -> users (user_id));
 diesel::joinable!(tweets -> users (user_id));
 
-diesel::allow_tables_to_appear_in_same_query!(
-    follows,
-    likes,
-    tweets,
-    users,
-);
+diesel::allow_tables_to_appear_in_same_query!(follows, likes, tweets, users,);

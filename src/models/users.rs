@@ -1,8 +1,8 @@
-use chrono::NaiveDateTime;
-use diesel::{Insertable, Queryable, Identifiable};
-use serde::{Serialize, Deserialize};
-use uuid::Uuid;
 use crate::schema::users;
+use chrono::NaiveDateTime;
+use diesel::{Identifiable, Insertable, Queryable};
+use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 #[derive(Debug, Clone, Queryable, Identifiable, Serialize, Deserialize)]
 #[diesel(table_name = users)]
@@ -45,4 +45,3 @@ pub struct UserUpdate {
     pub bio: Option<String>,
     pub avatar_url: Option<String>,
 }
-

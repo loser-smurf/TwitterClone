@@ -1,9 +1,9 @@
-use chrono::NaiveDateTime;
-use diesel::{Insertable, Queryable, Identifiable};
-use serde::{Serialize, Deserialize};
-use uuid::Uuid;
-use crate::schema::follows;
 use crate::models::users::User;
+use crate::schema::follows;
+use chrono::NaiveDateTime;
+use diesel::{Identifiable, Insertable, Queryable};
+use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 #[derive(Debug, Clone, Queryable, Identifiable, Serialize, Deserialize)]
 #[diesel(table_name = follows)]

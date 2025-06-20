@@ -1,10 +1,10 @@
-use chrono::NaiveDateTime;
-use diesel::{Insertable, Queryable, Identifiable, Associations};
-use serde::{Serialize, Deserialize};
-use uuid::Uuid;
-use crate::schema::likes;
-use crate::models::users::User;
 use crate::models::tweets::Tweet;
+use crate::models::users::User;
+use crate::schema::likes;
+use chrono::NaiveDateTime;
+use diesel::{Associations, Identifiable, Insertable, Queryable};
+use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 #[derive(Debug, Clone, Queryable, Identifiable, Associations, Serialize, Deserialize)]
 #[diesel(belongs_to(User))]

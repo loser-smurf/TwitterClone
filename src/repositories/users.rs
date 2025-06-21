@@ -2,6 +2,7 @@ use crate::database::{DbPool, get_db_conn};
 use crate::models::users::{NewUser, User};
 use crate::schema::users::dsl::*;
 use diesel::prelude::*;
+use uuid::Uuid;
 
 /// Inserts a new user and returns the created user
 pub fn insert_user(pool: &DbPool, new_user: &NewUser) -> Result<User, diesel::result::Error> {
@@ -47,3 +48,17 @@ pub fn find_user_by_username_or_email(
     Ok(user_found)
 }
 
+/// Finds a user by ID.
+/// Returns 'Ok(Some(user))' if found, 'Ok(None)' if not found.
+pub fn find_user_by_id(
+    pool: &DbPool,
+    user_id: &Uuid,
+) -> Result<Option<User>, diesel::result::Error> {
+    let mut conn = get_db_conn(pool)?;
+
+    let user_found = users
+        .filter(id.eq(user_id))
+        .first::<User>(&mut conn)
+        .optional()?;
+    Ok(user_found)
+}

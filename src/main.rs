@@ -17,10 +17,11 @@ async fn main() -> std::io::Result<()> {
 
     HttpServer::new(move || {
         App::new().app_data(web::Data::new(pool.clone())).service(
-            web::scope("/api/users")
-                .route("/register", web::post().to(handlers::register::register))
-                .route("/login", web::post().to(handlers::login::login))
-                .route("/protected", web::post().to(handlers::login::protected_route))
+            web::scope("/auth/")
+                .route("/register", web::post().to(handlers::auth::register))
+                .route("/login", web::post().to(handlers::auth::login))
+                .route("/protected", web::post().to(handlers::auth::protected_route))
+                .route("/me", web::get().to(handlers::auth::get_current_user))
         )
     })
     .bind("127.0.0.1:8080")?

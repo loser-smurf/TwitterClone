@@ -45,3 +45,16 @@ pub struct UserUpdate {
     pub bio: Option<String>,
     pub avatar_url: Option<String>,
 }
+
+impl From<User> for UserPublic {
+    fn from(user: User) -> Self {
+        UserPublic {
+            id: user.id,
+            username: user.username,
+            name: user.name,
+            bio: user.bio,
+            avatar_url: user.avatar_url,
+            created_at: user.created_at,
+        }
+    }
+}

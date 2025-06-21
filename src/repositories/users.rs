@@ -62,3 +62,53 @@ pub fn find_user_by_id(
         .optional()?;
     Ok(user_found)
 }
+
+/// Gets a paginated list of users with optional search
+pub fn get_users(
+    pool: &DbPool,
+    page: i64,
+    per_page: i64,
+    search_query: Option<&str>,
+) -> Result<(Vec<User>, i64), diesel::result::Error> {
+    let mut conn = get_db_conn(pool)?;
+    
+    let offset = (page - 1) * per_page;
+    
+    // Get total count first
+    let total_count = if let Some(search) = search_query {
+        let search_pattern = format!("%{}%", search);
+        users
+            .filter(
+                username.ilike(&search_pattern)
+                    .or(name.ilike(&search_pattern))
+                    .or(bio.ilike(&search_pattern))
+            )
+            .count()
+            .get_result(&mut conn)?
+    } else {
+        users.count().get_result(&mut conn)?
+    };
+    
+    // Build the query for results
+    let users_list = if let Some(search) = search_query {
+        let search_pattern = format!("%{}%", search);
+        users
+            .filter(
+                username.ilike(&search_pattern)
+                    .or(name.ilike(&search_pattern))
+                    .or(bio.ilike(&search_pattern))
+            )
+            .order(created_at.desc())
+            .offset(offset)
+            .limit(per_page)
+            .load::<User>(&mut conn)?
+    } else {
+        users
+            .order(created_at.desc())
+            .offset(offset)
+            .limit(per_page)
+            .load::<User>(&mut conn)?
+    };
+    
+    Ok((users_list, total_count))
+}

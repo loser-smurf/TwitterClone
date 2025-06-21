@@ -18,3 +18,16 @@ pub struct RegisterRequest {
     #[serde(default)]
     pub avatar_url: Option<String>,
 }
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct UsersQuery {
+    #[serde(default = "default_page")]
+    pub page: i64,
+    #[serde(default = "default_per_page")]
+    pub per_page: i64,
+    #[serde(default)]
+    pub search: Option<String>,
+}
+
+fn default_page() -> i64 { 1 }
+fn default_per_page() -> i64 { 20 }

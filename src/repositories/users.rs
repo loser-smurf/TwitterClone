@@ -1,8 +1,9 @@
 use crate::database::{DbPool, get_db_conn};
-use crate::models::users::{NewUser, User};
+use crate::models::users::{NewUser, User, UserUpdate};
 use crate::schema::users::dsl::*;
 use diesel::prelude::*;
 use uuid::Uuid;
+use chrono::Utc;
 
 /// Inserts a new user and returns the created user
 pub fn insert_user(pool: &DbPool, new_user: &NewUser) -> Result<User, diesel::result::Error> {
@@ -111,4 +112,48 @@ pub fn get_users(
     };
     
     Ok((users_list, total_count))
+}
+
+/// Updates a user's information
+pub fn update_user(
+    pool: &DbPool,
+    user_id: &Uuid,
+    user_update: &UserUpdate,
+) -> Result<User, diesel::result::Error> {
+    let mut conn = get_db_conn(pool)?;
+    let mut was_updated = false;
+
+    // Update name if provided
+    if let Some(ref new_name) = user_update.name {
+        diesel::update(users.filter(id.eq(user_id)))
+            .set(name.eq(new_name))
+            .execute(&mut conn)?;
+        was_updated = true;
+    }
+
+    // Update bio if provided
+    if let Some(ref new_bio) = user_update.bio {
+        diesel::update(users.filter(id.eq(user_id)))
+            .set(bio.eq(new_bio))
+            .execute(&mut conn)?;
+        was_updated = true;
+    }
+
+    // Update avatar_url if provided
+    if let Some(ref new_avatar_url) = user_update.avatar_url {
+        diesel::update(users.filter(id.eq(user_id)))
+            .set(avatar_url.eq(new_avatar_url))
+            .execute(&mut conn)?;
+        was_updated = true;
+    }
+
+    // Update the updated_at timestamp if any field was changed
+    if was_updated {
+        diesel::update(users.filter(id.eq(user_id)))
+            .set(updated_at.eq(Utc::now().naive_utc()))
+            .execute(&mut conn)?;
+    }
+
+    // Return updated user
+    users.filter(id.eq(user_id)).first::<User>(&mut conn)
 }

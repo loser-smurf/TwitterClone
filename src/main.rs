@@ -28,6 +28,8 @@ async fn main() -> std::io::Result<()> {
             .service(
                 web::scope("/users/")
                     .route("", web::get().to(handlers::users::list_users))
+                    .route("/{id}", web::get().to(handlers::users::get_user))
+                    .route("/{id}", web::patch().to(handlers::users::update_user))
             )
     })
     .bind("127.0.0.1:8080")?

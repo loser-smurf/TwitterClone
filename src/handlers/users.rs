@@ -1,9 +1,11 @@
 use crate::database::DbPool;
-use crate::repositories::users::get_users;
+use crate::repositories::users::{find_user_by_id, get_users, update_user as update_user_repo};
 use crate::requests::users::UsersQuery;
-use crate::models::users::UserPublic;
+use crate::models::users::{UserPublic, UserUpdate};
 use crate::models::users::User;
+use crate::jwt::AuthenticatedUser;
 use actix_web::{HttpResponse, web, Error};
+use uuid::Uuid;
 
 /// Get paginated list of users with optional search
 pub async fn list_users(
@@ -45,4 +47,51 @@ pub async fn list_users(
     Ok(HttpResponse::Ok()
         .content_type("application/json")
         .json(response))
+}
+
+pub async fn get_user(
+    pool: web::Data<DbPool>,
+    path: web::Path<String>,
+) -> Result<HttpResponse, Error> {
+    // Parse user_id from string to UUID
+    let user_id = Uuid::parse_str(&path.into_inner())
+        .map_err(|_| actix_web::error::ErrorBadRequest("Invalid user ID"))?;
+    
+    let user = find_user_by_id(&pool, &user_id)
+        .map_err(|e| {
+            eprintln!("Database query error: {}", e);
+            actix_web::error::ErrorInternalServerError("Database error")
+        })?
+        .ok_or_else(|| actix_web::error::ErrorNotFound("User not found"))?;
+
+    // Convert to public format
+    let public_user: UserPublic = user.into();
+
+    Ok(HttpResponse::Ok()
+        .content_type("application/json")
+        .json(public_user))
+}
+
+pub async fn update_user(
+    pool: web::Data<DbPool>,
+    user: AuthenticatedUser,
+    request: web::Json<UserUpdate>,
+) -> Result<HttpResponse, Error> {
+    // Parse user_id from JWT token
+    let user_id = Uuid::parse_str(&user.user_id)
+        .map_err(|_| actix_web::error::ErrorBadRequest("Invalid user ID"))?;
+    
+    // Update user in database
+    let updated_user = update_user_repo(&pool, &user_id, &request.into_inner())
+        .map_err(|e| {
+            eprintln!("Database update error: {}", e);
+            actix_web::error::ErrorInternalServerError("Database error")
+        })?;
+
+    // Convert to public format
+    let public_user: UserPublic = updated_user.into();
+
+    Ok(HttpResponse::Ok()
+        .content_type("application/json")
+        .json(public_user))
 }

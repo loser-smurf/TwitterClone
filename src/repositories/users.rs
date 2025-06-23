@@ -115,7 +115,7 @@ pub fn get_users(
 }
 
 /// Updates a user's information
-pub fn update_user(
+pub fn update_user_repo(
     pool: &DbPool,
     user_id: &Uuid,
     user_update: &UserUpdate,
@@ -157,3 +157,17 @@ pub fn update_user(
     // Return updated user
     users.filter(id.eq(user_id)).first::<User>(&mut conn)
 }
+
+/// Deletes a user from DB.
+pub fn delete_user_repo(
+    pool: &DbPool,
+    user_id: &Uuid
+) -> Result<bool, diesel::result::Error> {
+    let mut conn = get_db_conn(pool)?;
+
+    diesel::delete(users.filter(id.eq(user_id)))
+        .execute(&mut conn)?;
+    Ok(true)
+}
+
+

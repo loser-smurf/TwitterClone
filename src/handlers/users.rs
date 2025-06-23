@@ -1,5 +1,6 @@
 use crate::database::DbPool;
-use crate::repositories::users::{find_user_by_id, get_users, update_user as update_user_repo};
+use crate::repositories::users::{find_user_by_id, get_users, update_user_repo,delete_user_repo};
+use crate::repositories::followers::{get_followers_repo, get_followings_repo};
 use crate::requests::users::UsersQuery;
 use crate::models::users::{UserPublic, UserUpdate};
 use crate::models::users::User;
@@ -94,4 +95,59 @@ pub async fn update_user(
     Ok(HttpResponse::Ok()
         .content_type("application/json")
         .json(public_user))
+}
+
+/// Delete a user
+pub async fn delete_user(
+    pool: web::Data<DbPool>,
+    user: AuthenticatedUser,
+) -> Result<HttpResponse, Error> {
+    // Parse user_id from JWT token
+    let user_id = Uuid::parse_str(&user.user_id)
+        .map_err(|_| actix_web::error::ErrorBadRequest("Ivalid user ID"))?;
+
+    match delete_user_repo(&pool, &user_id) {
+        Ok(true) => Ok(HttpResponse::Ok().finish()),
+        Ok(false) => Err(actix_web::error::ErrorNotFound("User not found")),
+        Err(e) => {
+            eprintln!("Database delete error: {}", e);
+            Err(actix_web::error::ErrorInternalServerError("Database error"))
+        }
+    }
+}
+
+/// Get followers of a user
+pub async fn get_followers(
+    pool: web::Data<DbPool>,
+    path: web::Path<Uuid>,
+) -> Result<HttpResponse, Error> {
+    let user_id = path.into_inner();
+
+    let followers = get_followers_repo(&pool, &user_id)
+        .map_err(|e| {
+            eprintln!("Database query error: {}", e);
+            actix_web::error::ErrorInternalServerError("Database error")
+        })?;
+
+    Ok(HttpResponse::Ok()
+        .content_type("application/json")
+        .json(followers))
+}
+
+/// Get followings of a user
+pub async fn get_followings(
+    pool: web::Data<DbPool>,
+    path: web::Path<Uuid>,
+) -> Result<HttpResponse, Error> {
+    let user_id = path.into_inner();
+
+    let followings = get_followings_repo(&pool, &user_id)
+        .map_err(|e| {
+            eprintln!("Database query error: {}", e);
+            actix_web::error::ErrorInternalServerError("Database error")
+        })?;
+
+    Ok(HttpResponse::Ok()
+        .content_type("application/json")
+        .json(followings))
 }

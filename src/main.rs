@@ -34,6 +34,12 @@ async fn main() -> std::io::Result<()> {
                     .route("/{id}/followers", web::get().to(handlers::users::get_followers))
                     .route("/{id}/following", web::get().to(handlers::users::get_followings))
             )
+            .service(
+                web::scope("/follows/")
+                    .route("/{id}", web::post().to(handlers::follows::follow_user))
+                    .route("/{id}", web::delete().to(handlers::follows::unfollow_user))
+                    .route("/{id}", web::get().to(handlers::follows::check_follow))
+            )
     })
     .bind("127.0.0.1:8080")?
     .run()

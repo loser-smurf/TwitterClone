@@ -1,11 +1,11 @@
 use crate::database::DbPool;
-use crate::repositories::users::{find_user_by_id, get_users, update_user_repo,delete_user_repo};
-use crate::repositories::followers::{get_followers_repo, get_followings_repo};
-use crate::requests::users::UsersQuery;
-use crate::models::users::{UserPublic, UserUpdate};
-use crate::models::users::User;
 use crate::jwt::AuthenticatedUser;
-use actix_web::{HttpResponse, web, Error};
+use crate::models::users::User;
+use crate::models::users::{UserPublic, UserUpdate};
+use crate::repositories::followers::{get_followers_repo, get_followings_repo};
+use crate::repositories::users::{delete_user_repo, find_user_by_id, get_users, update_user_repo};
+use crate::requests::users::UsersQuery;
+use actix_web::{Error, HttpResponse, web};
 use uuid::Uuid;
 
 /// Get paginated list of users with optional search
@@ -13,19 +13,17 @@ pub async fn list_users(
     pool: web::Data<DbPool>,
     query: web::Query<UsersQuery>,
 ) -> Result<HttpResponse, Error> {
-    let (users_list, total_count) = get_users(
-        &pool,
-        query.page,
-        query.per_page,
-        query.search.as_deref(),
-    )
-    .map_err(|e| {
-        eprintln!("Database query error: {}", e);
-        actix_web::error::ErrorInternalServerError("Database error")
-    })?;
+    let (users_list, total_count) =
+        get_users(&pool, query.page, query.per_page, query.search.as_deref()).map_err(|e| {
+            eprintln!("Database query error: {}", e);
+            actix_web::error::ErrorInternalServerError("Database error")
+        })?;
 
     // Convert users to public format (without sensitive data)
-    let public_users: Vec<UserPublic> = users_list.into_iter().map(|user: User| user.into()).collect();
+    let public_users: Vec<UserPublic> = users_list
+        .into_iter()
+        .map(|user: User| user.into())
+        .collect();
 
     // Calculate pagination info
     let total_pages = (total_count + query.per_page - 1) / query.per_page;
@@ -57,7 +55,7 @@ pub async fn get_user(
     // Parse user_id from string to UUID
     let user_id = Uuid::parse_str(&path.into_inner())
         .map_err(|_| actix_web::error::ErrorBadRequest("Invalid user ID"))?;
-    
+
     let user = find_user_by_id(&pool, &user_id)
         .map_err(|e| {
             eprintln!("Database query error: {}", e);
@@ -81,13 +79,12 @@ pub async fn update_user(
     // Parse user_id from JWT token
     let user_id = Uuid::parse_str(&user.user_id)
         .map_err(|_| actix_web::error::ErrorBadRequest("Invalid user ID"))?;
-    
+
     // Update user in database
-    let updated_user = update_user_repo(&pool, &user_id, &request.into_inner())
-        .map_err(|e| {
-            eprintln!("Database update error: {}", e);
-            actix_web::error::ErrorInternalServerError("Database error")
-        })?;
+    let updated_user = update_user_repo(&pool, &user_id, &request.into_inner()).map_err(|e| {
+        eprintln!("Database update error: {}", e);
+        actix_web::error::ErrorInternalServerError("Database error")
+    })?;
 
     // Convert to public format
     let public_user: UserPublic = updated_user.into();
@@ -123,11 +120,10 @@ pub async fn get_followers(
 ) -> Result<HttpResponse, Error> {
     let user_id = path.into_inner();
 
-    let followers = get_followers_repo(&pool, &user_id)
-        .map_err(|e| {
-            eprintln!("Database query error: {}", e);
-            actix_web::error::ErrorInternalServerError("Database error")
-        })?;
+    let followers = get_followers_repo(&pool, &user_id).map_err(|e| {
+        eprintln!("Database query error: {}", e);
+        actix_web::error::ErrorInternalServerError("Database error")
+    })?;
 
     Ok(HttpResponse::Ok()
         .content_type("application/json")
@@ -141,11 +137,10 @@ pub async fn get_followings(
 ) -> Result<HttpResponse, Error> {
     let user_id = path.into_inner();
 
-    let followings = get_followings_repo(&pool, &user_id)
-        .map_err(|e| {
-            eprintln!("Database query error: {}", e);
-            actix_web::error::ErrorInternalServerError("Database error")
-        })?;
+    let followings = get_followings_repo(&pool, &user_id).map_err(|e| {
+        eprintln!("Database query error: {}", e);
+        actix_web::error::ErrorInternalServerError("Database error")
+    })?;
 
     Ok(HttpResponse::Ok()
         .content_type("application/json")

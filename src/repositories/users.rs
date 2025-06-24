@@ -1,9 +1,9 @@
 use crate::database::{DbPool, get_db_conn};
 use crate::models::users::{NewUser, User, UserUpdate};
 use crate::schema::users::dsl::*;
+use chrono::Utc;
 use diesel::prelude::*;
 use uuid::Uuid;
-use chrono::Utc;
 
 /// Inserts a new user and returns the created user
 pub fn insert_user(pool: &DbPool, new_user: &NewUser) -> Result<User, diesel::result::Error> {
@@ -72,32 +72,34 @@ pub fn get_users(
     search_query: Option<&str>,
 ) -> Result<(Vec<User>, i64), diesel::result::Error> {
     let mut conn = get_db_conn(pool)?;
-    
+
     let offset = (page - 1) * per_page;
-    
+
     // Get total count first
     let total_count = if let Some(search) = search_query {
         let search_pattern = format!("%{}%", search);
         users
             .filter(
-                username.ilike(&search_pattern)
+                username
+                    .ilike(&search_pattern)
                     .or(name.ilike(&search_pattern))
-                    .or(bio.ilike(&search_pattern))
+                    .or(bio.ilike(&search_pattern)),
             )
             .count()
             .get_result(&mut conn)?
     } else {
         users.count().get_result(&mut conn)?
     };
-    
+
     // Build the query for results
     let users_list = if let Some(search) = search_query {
         let search_pattern = format!("%{}%", search);
         users
             .filter(
-                username.ilike(&search_pattern)
+                username
+                    .ilike(&search_pattern)
                     .or(name.ilike(&search_pattern))
-                    .or(bio.ilike(&search_pattern))
+                    .or(bio.ilike(&search_pattern)),
             )
             .order(created_at.desc())
             .offset(offset)
@@ -110,7 +112,7 @@ pub fn get_users(
             .limit(per_page)
             .load::<User>(&mut conn)?
     };
-    
+
     Ok((users_list, total_count))
 }
 
@@ -159,15 +161,9 @@ pub fn update_user_repo(
 }
 
 /// Deletes a user from DB.
-pub fn delete_user_repo(
-    pool: &DbPool,
-    user_id: &Uuid
-) -> Result<bool, diesel::result::Error> {
+pub fn delete_user_repo(pool: &DbPool, user_id: &Uuid) -> Result<bool, diesel::result::Error> {
     let mut conn = get_db_conn(pool)?;
 
-    diesel::delete(users.filter(id.eq(user_id)))
-        .execute(&mut conn)?;
+    diesel::delete(users.filter(id.eq(user_id))).execute(&mut conn)?;
     Ok(true)
 }
-
-

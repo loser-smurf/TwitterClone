@@ -1,6 +1,6 @@
 use crate::database::{DbPool, get_db_conn};
-use crate::models::users::{User, UserPublic};
 use crate::models::follows::{Follow, NewFollow};
+use crate::models::users::{User, UserPublic};
 use crate::schema::follows::dsl::*;
 use crate::schema::users;
 use diesel::prelude::*;
@@ -54,7 +54,7 @@ pub fn follow_user_repo(
     diesel::insert_into(follows)
         .values(&new_follow)
         .get_result(&mut conn)
-}  
+}
 
 /// Unfollows a user
 pub fn unfollow_user_repo(
@@ -64,8 +64,14 @@ pub fn unfollow_user_repo(
 ) -> Result<bool, diesel::result::Error> {
     let mut conn = get_db_conn(pool)?;
 
-    diesel::delete(follows.filter(follower_id.eq(follower_id_val).and(followed_id.eq(followed_id_val))))
-        .execute(&mut conn)?;
+    diesel::delete(
+        follows.filter(
+            follower_id
+                .eq(follower_id_val)
+                .and(followed_id.eq(followed_id_val)),
+        ),
+    )
+    .execute(&mut conn)?;
 
     Ok(true)
 }
@@ -78,7 +84,12 @@ pub fn is_followed_repo(
 ) -> Result<bool, diesel::result::Error> {
     let mut conn = get_db_conn(pool)?;
 
-    let is_followed = follows.filter(follower_id.eq(follower_id_val).and(followed_id.eq(followed_id_val)))
+    let is_followed = follows
+        .filter(
+            follower_id
+                .eq(follower_id_val)
+                .and(followed_id.eq(followed_id_val)),
+        )
         .first::<Follow>(&mut conn)
         .optional()?;
 

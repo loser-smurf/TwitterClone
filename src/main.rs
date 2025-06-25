@@ -53,7 +53,12 @@ async fn main() -> std::io::Result<()> {
                 web::scope("/tweets/")
                     .route("", web::post().to(handlers::tweets::create_tweet))
                     .route("", web::get().to(handlers::tweets::get_tweets))
-                    .route("/{id}", web::get().to(handlers::tweets::get_tweet)),
+                    .route("/{id}", web::get().to(handlers::tweets::get_tweet))
+                    .route("", web::delete().to(handlers::tweets::delete_tweet))
+                    .route(
+                        "/{id}/reply",
+                        web::post().to(handlers::tweets::reply_to_tweet),
+                    ),
             )
     })
     .bind("127.0.0.1:8080")?

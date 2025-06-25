@@ -57,3 +57,39 @@ pub fn get_tweets_repo(
 
     Ok((tweets_list, total_count))
 }
+
+/// Deletes a tweet
+pub fn delete_tweet_repo(
+    pool: &DbPool,
+    tweet_id_val: &Uuid,
+) -> Result<bool, diesel::result::Error> {
+    let mut conn = get_db_conn(pool)?;
+
+    diesel::delete(tweets.filter(id.eq(tweet_id_val))).execute(&mut conn)?;
+    Ok(true)
+}
+
+/// Creates a reply
+pub fn create_reply_repo(
+    pool: &DbPool,
+    tweet_id_val: &Uuid,
+    user_id_val: &Uuid,
+    content_val: &str,
+) -> Result<Tweet, diesel::result::Error> {
+    let mut conn = get_db_conn(pool)?;
+
+    let new_reply = NewTweet {
+        user_id: *user_id_val,
+        content: content_val.to_string(),
+        media_urls: None,
+        reply_to_id: Some(*tweet_id_val),
+        is_retweet: false,
+        original_tweet_id: None,
+    };
+
+    let reply = diesel::insert_into(tweets)
+        .values(&new_reply)
+        .get_result::<Tweet>(&mut conn)?;
+
+    Ok(reply)
+}

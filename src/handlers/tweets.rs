@@ -1,8 +1,11 @@
 use crate::database::DbPool;
 use crate::jwt::AuthenticatedUser;
-use crate::repositories::tweets::{create_tweet_repo, get_tweet_repo, get_tweets_repo};
+use crate::repositories::tweets::{
+    create_reply_repo, create_tweet_repo, delete_tweet_repo, get_tweet_repo, get_tweets_repo,
+};
 use crate::requests::tweets::{CreateTweetRequest, TweetsQuery};
 use actix_web::{Error, HttpResponse, web};
+use serde_json::json;
 use uuid::Uuid;
 
 /// Creates a tweet
@@ -52,4 +55,71 @@ pub async fn get_tweet(
     })?;
 
     Ok(HttpResponse::Ok().json(tweet))
+}
+
+/// Deletes a tweet
+pub async fn delete_tweet(
+    pool: web::Data<DbPool>,
+    user: AuthenticatedUser,
+    path: web::Path<Uuid>,
+) -> Result<HttpResponse, Error> {
+    let tweet_id = path.into_inner();
+
+    // Get tweet
+    let tweet = get_tweet_repo(&pool, &tweet_id).map_err(|e| {
+        eprintln!("Database get tweet error: {}", e);
+        actix_web::error::ErrorInternalServerError("Database error")
+    })?;
+
+    let user_uuid = Uuid::parse_str(&user.user_id)
+        .map_err(|_| actix_web::error::ErrorBadRequest("Invalid user ID"))?;
+
+    // Check if user is the owner of the tweet
+    if tweet.user_id != user_uuid {
+        return Ok(HttpResponse::Forbidden().json(json!({
+            "error": "You are not allowed to delete this tweet."
+        })));
+    }
+
+    // Delete tweet
+    let tweet = delete_tweet_repo(&pool, &tweet_id).map_err(|e| {
+        eprintln!("Database delete tweet error: {}", e);
+        actix_web::error::ErrorInternalServerError("Database error")
+    })?;
+
+    Ok(HttpResponse::Ok().json(tweet))
+}
+
+pub async fn reply_to_tweet(
+    pool: web::Data<DbPool>,
+    user: AuthenticatedUser,
+    path: web::Path<Uuid>,
+    reply: web::Json<CreateTweetRequest>,
+) -> Result<HttpResponse, Error> {
+    let tweet_id = path.into_inner();
+
+    // Fetch the tweet to which we want to reply
+    let tweet = get_tweet_repo(&pool, &tweet_id).map_err(|e| {
+        eprintln!("Database get tweet error: {}", e);
+        actix_web::error::ErrorInternalServerError("Database error")
+    })?;
+
+    // Check that you cannot reply to a reply (only to original tweets)
+    if tweet.reply_to_id.is_some() {
+        return Ok(HttpResponse::Forbidden().json(serde_json::json!({
+            "error": "You can only reply to original tweets"
+        })));
+    }
+
+    // Parse user_id from JWT
+    let user_uuid = Uuid::parse_str(&user.user_id)
+        .map_err(|_| actix_web::error::ErrorBadRequest("Invalid user ID"))?;
+
+    // Create reply
+    let reply = create_reply_repo(&pool, &tweet_id, &user_uuid, &reply.content).map_err(|e| {
+        eprintln!("Database create reply error: {}", e);
+        actix_web::error::ErrorInternalServerError("Database error")
+    })?;
+
+    Ok(HttpResponse::Ok().json(reply))
 }

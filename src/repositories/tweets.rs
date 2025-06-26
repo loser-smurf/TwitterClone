@@ -93,3 +93,40 @@ pub fn create_reply_repo(
 
     Ok(reply)
 }
+
+/// Gets replies to a tweet
+pub fn get_replies_repo(pool: &DbPool, tweet_id_val: &Uuid) -> Result<Vec<Tweet>, diesel::result::Error> {
+    let mut conn = get_db_conn(pool)?;
+
+    let replies = tweets
+        .filter(reply_to_id.eq(tweet_id_val))
+        .order(created_at.desc())
+        .load::<Tweet>(&mut conn)?;
+
+    Ok(replies)
+}
+
+/// Creates a retweet
+pub fn create_retweet_repo(
+    pool: &DbPool,
+    tweet_id_val: &Uuid,
+    user_id_val: &Uuid,
+    content_val: Option<String>,
+) -> Result<Tweet, diesel::result::Error> {
+    let mut conn = get_db_conn(pool)?;
+
+    let new_retweet = NewTweet {
+        user_id: *user_id_val,
+        content: content_val.unwrap_or_default(),
+        media_urls: None,
+        reply_to_id: None,
+        is_retweet: true,
+        original_tweet_id: Some(*tweet_id_val),
+    };
+
+    let retweet = diesel::insert_into(tweets)
+        .values(&new_retweet)
+        .get_result::<Tweet>(&mut conn)?;
+
+    Ok(retweet)
+}

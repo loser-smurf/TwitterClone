@@ -5,6 +5,11 @@ pub struct CreateTweetRequest {
     pub content: String,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct CreateRetweetRequest {
+    pub content: Option<String>,
+}
+
 #[derive(Deserialize)]
 pub struct TweetsQuery {
     #[serde(default = "default_page")]

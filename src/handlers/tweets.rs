@@ -1,9 +1,9 @@
 use crate::database::DbPool;
 use crate::jwt::AuthenticatedUser;
 use crate::repositories::tweets::{
-    create_reply_repo, create_tweet_repo, delete_tweet_repo, get_tweet_repo, get_tweets_repo,
+    create_reply_repo, create_retweet_repo, create_tweet_repo, delete_tweet_repo, get_replies_repo, get_tweet_repo, get_tweets_repo,
 };
-use crate::requests::tweets::{CreateTweetRequest, TweetsQuery};
+use crate::requests::tweets::{CreateRetweetRequest, CreateTweetRequest, TweetsQuery};
 use actix_web::{Error, HttpResponse, web};
 use serde_json::json;
 use uuid::Uuid;
@@ -122,4 +122,41 @@ pub async fn reply_to_tweet(
     })?;
 
     Ok(HttpResponse::Ok().json(reply))
+}
+
+/// Gets replies to a tweet
+pub async fn get_replies(
+    pool: web::Data<DbPool>,
+    path: web::Path<Uuid>,
+) -> Result<HttpResponse, Error> {
+    let tweet_id = path.into_inner();
+
+    let replies = get_replies_repo(&pool, &tweet_id).map_err(|e| {
+        eprintln!("Database get replies error: {}", e);
+        actix_web::error::ErrorInternalServerError("Database error")
+    })?;
+
+    Ok(HttpResponse::Ok().json(replies))
+}
+
+/// Creates a retweet
+pub async fn retweet_tweet(
+    pool: web::Data<DbPool>,
+    user: AuthenticatedUser,
+    path: web::Path<Uuid>,
+    create_retweet_request: web::Json<CreateRetweetRequest>,
+) -> Result<HttpResponse, Error> {
+    let tweet_id = path.into_inner();
+
+    // Parse user_id from JWT
+    let user_uuid = Uuid::parse_str(&user.user_id)
+        .map_err(|_| actix_web::error::ErrorBadRequest("Invalid user ID"))?;
+
+    // Create retweet
+    let retweet = create_retweet_repo(&pool, &tweet_id, &user_uuid, create_retweet_request.content.clone()).map_err(|e| {
+        eprintln!("Database create retweet error: {}", e);
+        actix_web::error::ErrorInternalServerError("Database error")
+    })?;
+
+    Ok(HttpResponse::Ok().json(retweet))
 }

@@ -58,7 +58,9 @@ async fn main() -> std::io::Result<()> {
                     .route(
                         "/{id}/reply",
                         web::post().to(handlers::tweets::reply_to_tweet),
-                    ),
+                    )
+                    .route("/{id}/replies", web::get().to(handlers::tweets::get_replies))
+                    .route("/{id}/retweet", web::post().to(handlers::tweets::retweet_tweet))
             )
     })
     .bind("127.0.0.1:8080")?

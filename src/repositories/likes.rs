@@ -40,3 +40,19 @@ pub fn delete_like_repo(
             e
         })
 }
+
+/// Gets likes for a tweet
+pub fn get_likes_repo(
+    pool: &DbPool,
+    user_id_val: &Uuid,
+    tweet_id_val: &Uuid,
+) -> Result<Vec<Like>, diesel::result::Error> {
+    let mut conn = get_db_conn(pool)?;
+
+    let likes_result = likes
+        .filter(user_id.eq(user_id_val))
+        .filter(tweet_id.eq(tweet_id_val))
+        .load::<Like>(&mut conn)?;
+
+    Ok(likes_result)
+}

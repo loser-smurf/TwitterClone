@@ -1,4 +1,10 @@
+use crate::storage::S3Storage;
 use actix_web::{App, HttpServer, web};
+use aws_config::BehaviorVersion;
+use aws_config::meta::region::RegionProviderChain;
+use aws_sdk_s3::Client;
+use aws_sdk_s3::config::Region;
+use std::env;
 
 mod crypto;
 mod database;
@@ -8,16 +14,31 @@ mod models;
 mod repositories;
 mod requests;
 mod schema;
+mod storage;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     dotenv::dotenv().ok();
+
+    let region_provider = RegionProviderChain::default_provider().or_else(Region::new(
+        env::var("AWS_REGION").unwrap_or_else(|_| "eu-north-1".to_string()),
+    ));
+
+    let config = aws_config::defaults(BehaviorVersion::latest())
+        .region(region_provider)
+        .load()
+        .await;
+
+    let client = Client::new(&config);
+    let baucket_name = env::var("AWS_BUCKET_NAME").unwrap_or_else(|_| "file-storage".to_string());
+    let storage_s3 = S3Storage::new(client, baucket_name);
 
     let pool = database::create_pool();
 
     HttpServer::new(move || {
         App::new()
             .app_data(web::Data::new(pool.clone()))
+            .app_data(web::Data::new(storage_s3.clone()))
 
             // Auth endpoints
             .service(
@@ -61,6 +82,13 @@ async fn main() -> std::io::Result<()> {
                     .route("/{id}/like", web::delete().to(handlers::likes::delete_like))
                     .route("/{id}/likes", web::get().to(handlers::likes::get_likes))
             )
+
+            // Media endpoints
+            .service(
+                web::scope("/media/")
+                    .route("/upload", web::post().to(handlers::media::upload_media))
+            )
+
     })
     .bind("127.0.0.1:8080")?
     .run()

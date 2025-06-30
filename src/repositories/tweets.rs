@@ -9,16 +9,17 @@ pub fn create_tweet_repo(
     pool: &DbPool,
     user_id_val: &Uuid,
     content_val: &str,
+    media_urls_val: Option<Vec<Option<String>>>,
 ) -> Result<Tweet, diesel::result::Error> {
     let mut conn = get_db_conn(pool)?;
 
     let new_tweet = NewTweet {
         user_id: *user_id_val,
         content: content_val.to_string(),
-        media_urls: None,
+        media_urls: media_urls_val,
         reply_to_id: None,
         is_retweet: false,
-        original_tweet_id: None,
+        original_tweet_id: None,    
     };
 
     let tweet = diesel::insert_into(tweets)

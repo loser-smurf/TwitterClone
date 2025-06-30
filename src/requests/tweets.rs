@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CreateTweetRequest {
     pub content: String,
+    pub media_urls: Option<Vec<Option<String>>>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

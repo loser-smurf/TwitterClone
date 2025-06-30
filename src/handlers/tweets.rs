@@ -18,10 +18,10 @@ pub async fn create_tweet(
     let user_id = Uuid::parse_str(&user.user_id)
         .map_err(|_| actix_web::error::ErrorBadRequest("Invalid user ID"))?;
 
-    // :TODO Loads metadata from the request
+    let media_urls = tweet.media_urls.clone().map(|urls| urls.into_iter().map(|url| url.map(|url| url.to_string())).collect());
 
     // Create tweet
-    let tweet = create_tweet_repo(&pool, &user_id, &tweet.content).map_err(|e| {
+    let tweet = create_tweet_repo(&pool, &user_id, &tweet.content, media_urls).map_err(|e| {
         eprintln!("Database create tweet error: {}", e);
         actix_web::error::ErrorInternalServerError("Database error")
     })?;

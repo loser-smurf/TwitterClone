@@ -44,8 +44,19 @@ diesel::table! {
     }
 }
 
+diesel::table! {
+    media (id) {
+        id -> Uuid,
+        user_id -> Uuid,
+        s3_key -> Text,
+        file_name -> Text,
+        file_type -> Text,
+        created_at -> Timestamp,
+    }
+}
+
 diesel::joinable!(likes -> tweets (tweet_id));
 diesel::joinable!(likes -> users (user_id));
 diesel::joinable!(tweets -> users (user_id));
 
-diesel::allow_tables_to_appear_in_same_query!(follows, likes, tweets, users,);
+diesel::allow_tables_to_appear_in_same_query!(follows, likes, tweets, users, media);

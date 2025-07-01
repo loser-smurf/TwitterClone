@@ -7,6 +7,7 @@ use crate::requests::tweets::{CreateRetweetRequest, CreateTweetRequest, TweetsQu
 use actix_web::{Error, HttpResponse, web};
 use serde_json::json;
 use uuid::Uuid;
+use crate::storage::S3Storage;
 
 /// Creates a tweet
 pub async fn create_tweet(
@@ -62,6 +63,7 @@ pub async fn delete_tweet(
     pool: web::Data<DbPool>,
     user: AuthenticatedUser,
     path: web::Path<Uuid>,
+    s3_client: web::Data<S3Storage>,
 ) -> Result<HttpResponse, Error> {
     let tweet_id = path.into_inner();
 
@@ -82,10 +84,7 @@ pub async fn delete_tweet(
     }
 
     // Delete tweet
-    let tweet = delete_tweet_repo(&pool, &tweet_id).map_err(|e| {
-        eprintln!("Database delete tweet error: {}", e);
-        actix_web::error::ErrorInternalServerError("Database error")
-    })?;
+    let tweet = delete_tweet_repo(&pool, &tweet_id, &s3_client).await?;
 
     Ok(HttpResponse::Ok().json(tweet))
 }

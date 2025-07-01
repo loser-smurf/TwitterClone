@@ -3,6 +3,8 @@ use crate::models::tweets::{NewTweet, Tweet};
 use crate::schema::tweets::dsl::*;
 use diesel::prelude::*;
 use uuid::Uuid;
+use crate::repositories::media::delete_media_by_user_id;
+use crate::storage::S3Storage;
 
 /// Create a tweet
 pub fn create_tweet_repo(
@@ -60,13 +62,27 @@ pub fn get_tweets_repo(
 }
 
 /// Deletes a tweet
-pub fn delete_tweet_repo(
+pub async fn delete_tweet_repo(
     pool: &DbPool,
     tweet_id_val: &Uuid,
-) -> Result<bool, diesel::result::Error> {
-    let mut conn = get_db_conn(pool)?;
+    s3_client: &S3Storage,
+) -> Result<bool, actix_web::Error> {
+    let mut conn = get_db_conn(pool)
+        .map_err(|e| actix_web::error::ErrorInternalServerError(e.to_string()))?;
 
-    diesel::delete(tweets.filter(id.eq(tweet_id_val))).execute(&mut conn)?;
+    // Получаем твит для user_id
+    let tweet: Tweet = tweets
+        .filter(id.eq(tweet_id_val))
+        .first(&mut conn)
+        .map_err(|e| actix_web::error::ErrorInternalServerError(e.to_string()))?;
+
+    // Удаляем все медиа пользователя
+    delete_media_by_user_id(pool, &tweet.user_id, s3_client).await?;
+
+    diesel::delete(tweets.filter(id.eq(tweet_id_val)))
+        .execute(&mut conn)
+        .map_err(|e| actix_web::error::ErrorInternalServerError(e.to_string()))?;
+
     Ok(true)
 }
 

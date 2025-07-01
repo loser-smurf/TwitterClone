@@ -83,4 +83,11 @@ impl S3Storage {
 
         Ok((original_name.to_string(), key, bytes, mime_type_val))
     }
+
+    pub async fn delete_file(&self, key: &str) -> Result<(), Error> {
+        self.client.delete_object().bucket(&self.bucket_name).key(key).send().await.map_err(|e| {
+            actix_web::error::ErrorInternalServerError(format!("S3 delete error: {}", e))
+        })?;
+        Ok(())
+    }
 }
